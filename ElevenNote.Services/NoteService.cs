@@ -11,7 +11,6 @@ namespace ElevenNote.Services
     public class NoteService
     {
         private readonly Guid _userId;
-        private ApplicationDbContext _ctx = new ApplicationDbContext();
 
         public NoteService(Guid userId)
         {
@@ -27,20 +26,27 @@ namespace ElevenNote.Services
                 Content = model.Content,
                 CreatedUtc = DateTimeOffset.Now
             };
-            _ctx.Notes.Add(entity);
-            return _ctx.SaveChanges() == 1;
+
+            using (var ctx = new ApplicationDbContext())
+            {
+                ctx.Notes.Add(entity);
+            return ctx.SaveChanges() == 1;
+            }
         }
 
         public IEnumerable<NoteListItem> GetNotes()
         {
-            var query = _ctx.Notes.Where(e => e.OwnerId == _userId)
-                                  .Select(e => new NoteListItem
-                                  {
-                                      NoteId = e.NoteId,
-                                      Title = e.Title,
-                                      CreatedUtc = e.CreatedUtc
-                                  });
-            return query.ToArray();
+            using (var ctx = new ApplicationDbContext())
+            {
+                var query = ctx.Notes.Where(e => e.OwnerId == _userId)
+                                      .Select(e => new NoteListItem
+                                      {
+                                          NoteId = e.NoteId,
+                                          Title = e.Title,
+                                          CreatedUtc = e.CreatedUtc
+                                      });
+                return query.ToArray();
+            }
         }
     }
 }
